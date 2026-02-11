@@ -1426,21 +1426,32 @@
         }
 
         function actualizarVisorJSON() {
-            const allDatos = JSON.parse(localStorage.getItem('datos')) || {};
-            const datos = allDatos[negocioSeleccionado?.nombre] || [];
-            
-            const datosFormateados = datos.map(d => {
-                const nuevo = { ...d };
-                negocioSeleccionado?.campos.forEach(c => {
-                    if (c.type === 'number' && !c.isInteger && nuevo[c.key]) {
-                        nuevo[c.key] = parseFloat(nuevo[c.key]).toFixed(2);
-                    }
+                const allDatos = JSON.parse(localStorage.getItem('datos')) || {};
+                const datos = allDatos[negocioSeleccionado?.nombre] || [];
+                
+                const datosFormateados = datos.map(d => {
+                    const nuevo = {};
+                    
+                    // ⭐ PRIMERO SIEMPRE EL ID
+                    if (d.id !== undefined) nuevo.id = d.id;
+                    
+                    // Luego el resto de campos en orden
+                    const campos = negocioSeleccionado?.campos.filter(c => c.key !== 'id') || [];
+                    campos.forEach(c => {
+                        if (d[c.key] !== undefined) {
+                            if (c.type === 'number' && !c.isInteger) {
+                                nuevo[c.key] = parseFloat(d[c.key]).toFixed(2);
+                            } else {
+                                nuevo[c.key] = d[c.key];
+                            }
+                        }
+                    });
+                    
+                    return nuevo;
                 });
-                return nuevo;
-            });
-            
-            document.getElementById('jsonViewer').textContent = JSON.stringify(datosFormateados, null, 2);
-        }
+                
+                document.getElementById('jsonViewer').textContent = JSON.stringify(datosFormateados, null, 2);
+            }
 
         function ordenarCampos(campos) {
             return [...campos].sort((a, b) => a.key === 'id' ? -1 : b.key === 'id' ? 1 : 0);
@@ -1451,4 +1462,4 @@
         }
     </script>
 </body>
-</html>
+</html> 
