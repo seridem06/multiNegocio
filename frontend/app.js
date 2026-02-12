@@ -75,3 +75,21 @@ window.fb = {
   getSchemas, createSchema, deleteSchema,
   getData, createRecord, updateRecord, deleteRecord
 };
+
+// Funciones globales para el HTML
+window.toggleCreator = function() {
+  const creator = document.querySelector('.creator-container');
+  const btn = document.getElementById('btnCreatorText');
+  if (creator.style.display === 'none' || !creator.style.display) {
+    creator.style.display = 'block';
+    btn.textContent = 'OCULTAR CREADOR';
+  } else {
+    creator.style.display = 'none';
+    btn.textContent = 'CREAR NUEVO NEGOCIO';
+  }
+};
+
+window.cargarDesdeJson = function() {
+  // Implementa esta función según tu lógica
+  alert('Función cargarDesdeJson por implementar');
+};
