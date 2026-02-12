@@ -1,5 +1,6 @@
 // ==================== ESTADO GLOBAL ====================
-let esquemas = JSON.parse(localStorage.getItem('esquemas')) || [];
+const API_URL = 'http://localhost:5000/api';  // URL del backend Flask
+let esquemas = [];
 let negocioSeleccionado = null;
 let camposTemporales = [];
 let modoEdicion = false;
@@ -55,13 +56,27 @@ function aplicarCalculos(data, campos) {
 }
 
 // ==================== INICIALIZACIÓN ====================
-document.addEventListener('DOMContentLoaded', () => {
-    renderSistemas();
+document.addEventListener('DOMContentLoaded', async () => {
+    await cargarEsquemas();
     updateIdLabel();
     updateCampoConfig();
     
     document.getElementById('idAutomatico').addEventListener('change', updateIdLabel);
 });
+
+// ==================== FUNCIONES API ====================
+
+async function cargarEsquemas() {
+    try {
+        const response = await fetch(`${API_URL}/schemas`);
+        if (!response.ok) throw new Error('Error al cargar esquemas');
+        esquemas = await response.json();
+        renderSistemas();
+    } catch (error) {
+        console.error('Error cargando esquemas:', error);
+        showAlert('Error conectando con el servidor', 'error');
+    }
+}
 
 // ==================== FUNCIONES DE UI ====================
 function showAlert(message, type = 'success') {
@@ -215,7 +230,7 @@ function renderCamposPreview() {
     `).join('');
 }
 
-function guardarSistema() {
+async function guardarSistema() {
     const nombre = document.getElementById('nuevoNombre').value.trim();
     
     if (!nombre || camposTemporales.length === 0) {
@@ -234,11 +249,25 @@ function guardarSistema() {
         ]
     };
     
-    esquemas.push(nuevoEsquema);
-    guardarEnLocalStorage();
-    renderSistemas();
-    toggleCreator();
-    showAlert('Sistema creado correctamente', 'success');
+    try {
+        const response = await fetch(`${API_URL}/schemas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevoEsquema)
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al crear sistema');
+        }
+        
+        await cargarEsquemas();
+        toggleCreator();
+        showAlert('Sistema creado correctamente', 'success');
+    } catch (error) {
+        console.error('Error guardando sistema:', error);
+        showAlert(error.message, 'error');
+    }
 }
 
 function limpiarCreador() {
@@ -261,38 +290,43 @@ function renderSistemas() {
     `).join('');
 }
 
-function seleccionarSistema(index) {
+async function seleccionarSistema(index) {
     negocioSeleccionado = esquemas[index];
     document.getElementById('emptyState').classList.add('hidden');
     document.getElementById('mainContent').classList.remove('hidden');
     
     renderFormulario();
-    renderTabla();
+    await renderTabla();
     renderSistemas();
     generarPlantillaJSON();
-    actualizarVisorJSON();
+    await actualizarVisorJSON();
 }
 
-function eliminarSistema(index) {
+async function eliminarSistema(index) {
     if (!confirm(`¿Seguro que deseas eliminar "${esquemas[index].nombre}"?`)) return;
     
     const nombreEliminado = esquemas[index].nombre;
-    esquemas.splice(index, 1);
     
-    const datos = JSON.parse(localStorage.getItem('datos')) || {};
-    delete datos[nombreEliminado];
-    localStorage.setItem('datos', JSON.stringify(datos));
-    
-    guardarEnLocalStorage();
-    
-    if (negocioSeleccionado?.nombre === nombreEliminado) {
-        negocioSeleccionado = null;
-        document.getElementById('emptyState').classList.remove('hidden');
-        document.getElementById('mainContent').classList.add('hidden');
+    try {
+        const response = await fetch(`${API_URL}/schemas/${encodeURIComponent(nombreEliminado)}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Error al eliminar sistema');
+        
+        await cargarEsquemas();
+        
+        if (negocioSeleccionado?.nombre === nombreEliminado) {
+            negocioSeleccionado = null;
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+        }
+        
+        showAlert('Sistema eliminado', 'success');
+    } catch (error) {
+        console.error('Error eliminando sistema:', error);
+        showAlert('Error al eliminar sistema', 'error');
     }
-    
-    renderSistemas();
-    showAlert('Sistema eliminado', 'success');
 }
 
 // ==================== FORMULARIO ====================
@@ -423,12 +457,12 @@ function calcularCamposAutomaticos() {
     });
 }
 
-function submitData() {
+async function submitData() {
     const form = document.getElementById('dataForm');
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
     
-    // ✅ CORRECCIÓN: Mantener el ID en modo edición
+    // Mantener el ID en modo edición
     if (modoEdicion) {
         data.id = editandoId;
     }
@@ -451,124 +485,150 @@ function submitData() {
         return;
     }
     
-    const allDatos = JSON.parse(localStorage.getItem('datos')) || {};
-    const datosSistema = allDatos[negocioSeleccionado.nombre] || [];
-    
-    // Generar ID solo si no estamos editando
-    if (!modoEdicion && (negocioSeleccionado.config.idAutomatico || !data.id)) {
-        const maxId = datosSistema.length > 0 
-            ? Math.max(...datosSistema.map(d => parseInt(d.id) || 0))
-            : 0;
-        data.id = maxId + 1;
-    }
-    
     // Convertir números
     negocioSeleccionado.campos.forEach(campo => {
         if (campo.type === 'number' && data[campo.key]) {
             data[campo.key] = campo.isInteger 
                 ? parseInt(data[campo.key])
-                : parseFloat(data[campo.key]).toFixed(2);
+                : parseFloat(data[campo.key]);
         }
     });
     
-    if (modoEdicion) {
-        const index = datosSistema.findIndex(d => d.id == editandoId);
-        if (index !== -1) {
-            datosSistema[index] = data;
+    try {
+        let response;
+        
+        if (modoEdicion) {
+            // Actualizar registro existente
+            response = await fetch(`${API_URL}/data/${editandoId}?negocio=${encodeURIComponent(negocioSeleccionado.nombre)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        } else {
+            // Crear nuevo registro
+            response = await fetch(`${API_URL}/data?negocio=${encodeURIComponent(negocioSeleccionado.nombre)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
         }
-        modoEdicion = false;
-        editandoId = null;
-        document.getElementById('btnSubmitText').textContent = 'REGISTRAR';
-    } else {
-        datosSistema.push(data);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al guardar datos');
+        }
+        
+        form.reset();
+        
+        if (modoEdicion) {
+            modoEdicion = false;
+            editandoId = null;
+            document.getElementById('btnSubmitText').textContent = 'REGISTRAR';
+        }
+        
+        await renderTabla();
+        await actualizarVisorJSON();
+        showAlert('Datos guardados correctamente', 'success');
+        
+    } catch (error) {
+        console.error('Error guardando datos:', error);
+        showAlert(error.message, 'error');
     }
-    
-    allDatos[negocioSeleccionado.nombre] = datosSistema;
-    localStorage.setItem('datos', JSON.stringify(allDatos));
-    
-    form.reset();
-    renderTabla();
-    actualizarVisorJSON();
-    showAlert('Datos guardados correctamente', 'success');
 }
 
 // ==================== TABLA ====================
-function renderTabla() {
-    const allDatos = JSON.parse(localStorage.getItem('datos')) || {};
-    const datos = allDatos[negocioSeleccionado.nombre] || [];
-    datos.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-    
-    const campos = ordenarCampos(negocioSeleccionado.campos);
-    
-    const thead = document.getElementById('tableHead');
-    thead.innerHTML = `
-        <tr>
-            ${campos.map(c => `<th>${c.label}</th>`).join('')}
-            <th>OPC</th>
-        </tr>
-    `;
-    
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = datos.map(row => `
-        <tr>
-            ${campos.map(c => {
-                let valor = row[c.key];
-                
-                // Calcular campos automáticos si no existen
-                if ((valor === undefined || valor === null || valor === '') && 
-                    (c.type === 'age' || c.type === 'calculated' || c.type === 'license_status')) {
-                    const temp = aplicarCalculos(row, negocioSeleccionado.campos);
-                    valor = temp[c.key];
-                }
-                
-                if (c.type === 'number' && !c.isInteger && valor !== undefined && valor !== null && valor !== '') {
-                    valor = parseFloat(valor).toFixed(2);
-                }
-                if (c.type === 'license_status' && valor === 'VENCIDA') {
-                    return `<td style="color: #ff0000; font-weight: bold;">${valor}</td>`;
-                }
-                return `<td>${valor !== undefined && valor !== null ? valor : ''}</td>`;
-            }).join('')}
-            <td class="table-actions">
-                <button class="icon-btn icon-edit" onclick="editarDato(${row.id})">✏️</button>
-                <button class="icon-btn icon-delete" onclick="eliminarDato(${row.id})">🗑️</button>
-            </td>
-        </tr>
-    `).join('');
+async function renderTabla() {
+    try {
+        const response = await fetch(`${API_URL}/data?negocio=${encodeURIComponent(negocioSeleccionado.nombre)}`);
+        if (!response.ok) throw new Error('Error al cargar datos');
+        
+        const datos = await response.json();
+        datos.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        
+        const campos = ordenarCampos(negocioSeleccionado.campos);
+        
+        const thead = document.getElementById('tableHead');
+        thead.innerHTML = `
+            <tr>
+                ${campos.map(c => `<th>${c.label}</th>`).join('')}
+                <th>OPC</th>
+            </tr>
+        `;
+        
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = datos.map(row => `
+            <tr>
+                ${campos.map(c => {
+                    let valor = row[c.key];
+                    
+                    // Calcular campos automáticos si no existen
+                    if ((valor === undefined || valor === null || valor === '') && 
+                        (c.type === 'age' || c.type === 'calculated' || c.type === 'license_status')) {
+                        const temp = aplicarCalculos(row, negocioSeleccionado.campos);
+                        valor = temp[c.key];
+                    }
+                    
+                    if (c.type === 'number' && !c.isInteger && valor !== undefined && valor !== null && valor !== '') {
+                        valor = parseFloat(valor).toFixed(2);
+                    }
+                    if (c.type === 'license_status' && valor === 'VENCIDA') {
+                        return `<td style="color: #ff0000; font-weight: bold;">${valor}</td>`;
+                    }
+                    return `<td>${valor !== undefined && valor !== null ? valor : ''}</td>`;
+                }).join('')}
+                <td class="table-actions">
+                    <button class="icon-btn icon-edit" onclick="editarDato(${row.id})">✏️</button>
+                    <button class="icon-btn icon-delete" onclick="eliminarDato(${row.id})">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error renderizando tabla:', error);
+        showAlert('Error al cargar datos', 'error');
+    }
 }
 
-function editarDato(id) {
-    const allDatos = JSON.parse(localStorage.getItem('datos')) || {};
-    const datos = allDatos[negocioSeleccionado.nombre] || [];
-    const dato = datos.find(d => d.id == id);
-    
-    if (!dato) return;
-    
-    const form = document.getElementById('dataForm');
-    Object.keys(dato).forEach(key => {
-        const input = form.querySelector(`[name="${key}"]`);
-        if (input) input.value = dato[key];
-    });
-    
-    modoEdicion = true;
-    editandoId = id;
-    document.getElementById('btnSubmitText').textContent = 'ACTUALIZAR';
-    
-    document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+async function editarDato(id) {
+    try {
+        const response = await fetch(`${API_URL}/data/${id}?negocio=${encodeURIComponent(negocioSeleccionado.nombre)}`);
+        if (!response.ok) throw new Error('Error al cargar dato');
+        
+        const dato = await response.json();
+        
+        const form = document.getElementById('dataForm');
+        Object.keys(dato).forEach(key => {
+            const input = form.querySelector(`[name="${key}"]`);
+            if (input) input.value = dato[key];
+        });
+        
+        modoEdicion = true;
+        editandoId = id;
+        document.getElementById('btnSubmitText').textContent = 'ACTUALIZAR';
+        
+        document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+    } catch (error) {
+        console.error('Error editando dato:', error);
+        showAlert('Error al cargar dato', 'error');
+    }
 }
 
-function eliminarDato(id) {
+async function eliminarDato(id) {
     if (!confirm('¿Eliminar este registro?')) return;
     
-    const allDatos = JSON.parse(localStorage.getItem('datos')) || {};
-    const datos = allDatos[negocioSeleccionado.nombre] || [];
-    
-    allDatos[negocioSeleccionado.nombre] = datos.filter(d => d.id != id);
-    localStorage.setItem('datos', JSON.stringify(allDatos));
-    
-    renderTabla();
-    actualizarVisorJSON();
-    showAlert('Registro eliminado', 'success');
+    try {
+        const response = await fetch(`${API_URL}/data/${id}?negocio=${encodeURIComponent(negocioSeleccionado.nombre)}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Error al eliminar dato');
+        
+        await renderTabla();
+        await actualizarVisorJSON();
+        showAlert('Registro eliminado', 'success');
+    } catch (error) {
+        console.error('Error eliminando dato:', error);
+        showAlert('Error al eliminar registro', 'error');
+    }
 }
 
 // ==================== JSON ====================
@@ -593,12 +653,12 @@ function generarPlantillaJSON() {
     document.getElementById('jsonInput').value = JSON.stringify(plantilla, null, 2);
 }
 
-function cargarDesdeJson() {
+async function cargarDesdeJson() {
     try {
         const jsonText = document.getElementById('jsonInput').value.trim();
         let datosArray = [];
         
-        // ✅ CORRECCIÓN: Permitir objeto único o array de objetos
+        // Permitir objeto único o array de objetos
         const parsed = JSON.parse(jsonText);
         
         if (Array.isArray(parsed)) {
@@ -641,83 +701,71 @@ function cargarDesdeJson() {
             }
         }
         
-        // Procesar e insertar todos los objetos
-        const allDatos = JSON.parse(localStorage.getItem('datos')) || {};
-        const datosSistema = allDatos[negocioSeleccionado.nombre] || [];
-        
-        let contadorInsertados = 0;
-        
-        datosArray.forEach(data => {
-            // Aplicar cálculos automáticos
+        // Aplicar cálculos a cada objeto
+        const datosConCalculos = datosArray.map(data => {
             const dataCalculada = aplicarCalculos(data, negocioSeleccionado.campos);
-            Object.assign(data, dataCalculada);
-            
-            // Generar ID automático
-            if (negocioSeleccionado.config.idAutomatico || !data.id) {
-                const maxId = datosSistema.length > 0 
-                    ? Math.max(...datosSistema.map(d => parseInt(d.id) || 0))
-                    : 0;
-                data.id = maxId + 1 + contadorInsertados;
-            }
-            
-            // Convertir números
-            negocioSeleccionado.campos.forEach(campo => {
-                if (campo.type === 'number' && data[campo.key]) {
-                    data[campo.key] = campo.isInteger 
-                        ? parseInt(data[campo.key])
-                        : parseFloat(data[campo.key]).toFixed(2);
-                }
-            });
-            
-            datosSistema.push(data);
-            contadorInsertados++;
+            return { ...data, ...dataCalculada };
         });
         
-        allDatos[negocioSeleccionado.nombre] = datosSistema;
-        localStorage.setItem('datos', JSON.stringify(allDatos));
+        // Enviar al servidor
+        const response = await fetch(`${API_URL}/data?negocio=${encodeURIComponent(negocioSeleccionado.nombre)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datosConCalculos)
+        });
         
-        renderTabla();
-        actualizarVisorJSON();
-        showAlert(`✅ ${contadorInsertados} registro(s) cargado(s) correctamente`, 'success');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al cargar datos');
+        }
+        
+        const result = await response.json();
+        
+        await renderTabla();
+        await actualizarVisorJSON();
+        showAlert(`✅ ${datosConCalculos.length} registro(s) cargado(s) correctamente`, 'success');
         
     } catch (e) {
+        console.error('Error en carga JSON:', e);
         showAlert('❌ JSON inválido: ' + e.message, 'error');
     }
 }
 
-function actualizarVisorJSON() {
-    const allDatos = JSON.parse(localStorage.getItem('datos')) || {};
-    const datos = allDatos[negocioSeleccionado?.nombre] || [];
-    
-    const datosFormateados = datos.map(d => {
-        const nuevo = {};
+async function actualizarVisorJSON() {
+    try {
+        const response = await fetch(`${API_URL}/data?negocio=${encodeURIComponent(negocioSeleccionado.nombre)}`);
+        if (!response.ok) throw new Error('Error al cargar datos');
         
-        // Primero el ID
-        if (d.id !== undefined) nuevo.id = d.id;
+        const datos = await response.json();
         
-        // Luego el resto de campos
-        const campos = negocioSeleccionado?.campos.filter(c => c.key !== 'id') || [];
-        campos.forEach(c => {
-            if (d[c.key] !== undefined) {
-                if (c.type === 'number' && !c.isInteger) {
-                    nuevo[c.key] = parseFloat(d[c.key]).toFixed(2);
-                } else {
-                    nuevo[c.key] = d[c.key];
+        const datosFormateados = datos.map(d => {
+            const nuevo = {};
+            
+            // Primero el ID
+            if (d.id !== undefined) nuevo.id = d.id;
+            
+            // Luego el resto de campos
+            const campos = negocioSeleccionado?.campos.filter(c => c.key !== 'id') || [];
+            campos.forEach(c => {
+                if (d[c.key] !== undefined) {
+                    if (c.type === 'number' && !c.isInteger) {
+                        nuevo[c.key] = parseFloat(d[c.key]).toFixed(2);
+                    } else {
+                        nuevo[c.key] = d[c.key];
+                    }
                 }
-            }
+            });
+            
+            return nuevo;
         });
         
-        return nuevo;
-    });
-    
-    document.getElementById('jsonViewer').textContent = JSON.stringify(datosFormateados, null, 2);
+        document.getElementById('jsonViewer').textContent = JSON.stringify(datosFormateados, null, 2);
+    } catch (error) {
+        console.error('Error actualizando visor JSON:', error);
+    }
 }
 
 // ==================== UTILIDADES ====================
 function ordenarCampos(campos) {
     return [...campos].sort((a, b) => a.key === 'id' ? -1 : b.key === 'id' ? 1 : 0);
-}
-
-function guardarEnLocalStorage() {
-    localStorage.setItem('esquemas', JSON.stringify(esquemas));
 }

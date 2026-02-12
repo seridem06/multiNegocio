@@ -1,253 +1,339 @@
-# 🚀 PLATAFORMA MULTI-NEGOCIO
+# 🚀 PLATAFORMA MULTI-NEGOCIO CON SQLITE3
 
-Sistema de gestión multi-negocio con campos calculados automáticos y almacenamiento local.
+Sistema de gestión multi-negocio con campos calculados automáticos y almacenamiento en base de datos SQLite3.
 
-## 📁 Estructura de Archivos
+## 📁 Estructura del Proyecto
 
 ```
 proyecto/
-├── index.html      # Estructura HTML principal
-├── styles.css      # Estilos y diseño responsive
-├── app.js          # Lógica JavaScript
-└── README.md       # Este archivo
+├── backend/
+│   ├── app.py              # Servidor Flask (API REST)
+│   ├── database.py         # Gestión de SQLite3
+│   ├── requirements.txt    # Dependencias Python
+│   └── plataforma_negocio.db  # Base de datos (se crea automáticamente)
+├── frontend/
+│   ├── index.html          # Interfaz HTML
+│   ├── styles.css          # Estilos responsive
+│   └── app.js              # Lógica JavaScript
+└── README.md               # Esta documentación
 ```
-
-## 🎯 Características
-
-✅ **Sistemas dinámicos**: Crea múltiples sistemas de negocios  
-✅ **Campos automáticos**: Cálculos, edad, estado de licencia  
-✅ **Carga masiva**: Importa 1 o múltiples registros desde JSON  
-✅ **Persistencia**: Los datos se guardan en localStorage  
-✅ **Responsive**: Funciona en móviles, tablets y escritorio  
-✅ **Sin dependencias**: Solo HTML, CSS y JavaScript vanilla  
 
 ---
 
 ## 🔧 Instalación
 
-1. **Descarga los 3 archivos** en la misma carpeta:
-   - `index.html`
-   - `styles.css`
-   - `app.js`
+### **Requisitos:**
+- Python 3.8 o superior
+- SQLite3 (ya viene incluido con Python)
+- Navegador web moderno
 
-2. **Abre `index.html`** con tu navegador
+### **Paso 1: Instalar Python (si no lo tienes)**
 
-¡Listo! No necesitas servidor ni instalaciones.
+**Windows:**
+```bash
+# Descarga desde: https://www.python.org/downloads/
+# Marca la opción "Add Python to PATH" durante la instalación
+```
+
+**Linux/Mac:**
+```bash
+python3 --version  # Verificar que está instalado
+```
+
+### **Paso 2: Instalar dependencias del backend**
+
+```bash
+# Ve a la carpeta backend
+cd backend
+
+# Instala las dependencias
+pip install -r requirements.txt
+
+# O instala manualmente:
+pip install Flask==3.0.0 Flask-CORS==4.0.0
+```
+
+### **Paso 3: Iniciar el servidor backend**
+
+```bash
+# Desde la carpeta backend
+python app.py
+```
+
+Deberías ver:
+```
+🚀 Servidor iniciado en http://localhost:5000
+```
+
+### **Paso 4: Abrir el frontend**
+
+1. Abre el archivo `frontend/index.html` con tu navegador
+2. O usa un servidor local:
+   ```bash
+   # Opción 1: Python
+   cd frontend
+   python -m http.server 8080
+   # Luego abre: http://localhost:8080
+
+   # Opción 2: VS Code Live Server
+   # Click derecho en index.html → "Open with Live Server"
+   ```
 
 ---
 
-## 📖 Guía de Uso
+## 🎯 Características
+
+✅ **Base de datos SQLite3**: Todos los datos se guardan permanentemente  
+✅ **API REST completa**: Backend Flask con endpoints CRUD  
+✅ **Sistemas dinámicos**: Crea múltiples sistemas de negocios  
+✅ **Campos automáticos**: Cálculos, edad, estado de licencia  
+✅ **Carga masiva**: Importa 1 o múltiples registros desde JSON  
+✅ **Persistencia real**: Los datos no se pierden al cerrar el navegador  
+✅ **Responsive**: Funciona en móviles, tablets y escritorio  
+
+---
+
+## 📖 Uso Básico
 
 ### **1. Crear un Sistema**
 
 1. Click en "CREAR NUEVO NEGOCIO"
-2. Ingresa el nombre (ej: TIENDA, PERSONAS, LICENCIAS)
-3. Elige si el ID será automático o manual
-4. Agrega campos con sus tipos:
-   - **Texto**: Nombre, dirección, DNI
-   - **Número**: Precio, cantidad, edad
-   - **Select**: Género, estado, categoría
-   - **Fecha**: Nacimiento, vencimiento
-   - **Calculado**: Total = precio × cantidad
-   - **Edad**: Calcula edad desde fecha de nacimiento
-   - **Estado Licencia**: VIGENTE o VENCIDA según fecha
+2. Configura los campos (texto, número, fecha, calculados, etc.)
+3. Click en "GENERAR SISTEMA COMPLETO"
+
+### **2. Registrar Datos**
+
+**Opción A: Formulario visual**
+- Llena los campos manualmente
+- Click en "REGISTRAR"
+
+**Opción B: Carga masiva JSON**
+```json
+[
+  {"nombre": "Juan", "fecha_nacimiento": "2000-01-01"},
+  {"nombre": "María", "fecha_nacimiento": "1995-05-15"},
+  {"nombre": "Carlos", "fecha_nacimiento": "1988-12-20"}
+]
+```
+- Pega el JSON en el módulo de carga
+- Click en "CARGAR"
 
 ---
 
-### **2. Carga Masiva desde JSON**
+## 🔌 API Endpoints
 
-#### **Opción 1: Un solo registro**
-```json
-{
-  "nombre": "Juan",
-  "fecha_nacimiento": "2000-01-01",
-  "producto": "leche",
-  "precio": 3.50
-}
+### **Esquemas**
+```http
+GET    /api/schemas              # Listar todos los esquemas
+GET    /api/schemas/<nombre>     # Obtener un esquema
+POST   /api/schemas              # Crear esquema
+DELETE /api/schemas/<nombre>     # Eliminar esquema
 ```
 
-#### **Opción 2: Múltiples registros (Array)**
-```json
-[
-  {
-    "nombre": "Juan",
-    "fecha_nacimiento": "2000-01-01",
-    "producto": "leche",
-    "precio": 3.50
-  },
-  {
-    "nombre": "María",
-    "fecha_nacimiento": "1995-05-15",
-    "producto": "pan",
-    "precio": 2.00
-  },
-  {
-    "nombre": "Carlos",
-    "fecha_nacimiento": "1988-12-20",
-    "producto": "huevos",
-    "precio": 5.75
-  }
-]
+### **Datos**
+```http
+GET    /api/data?negocio=X       # Listar datos
+GET    /api/data/<id>?negocio=X  # Obtener un dato
+POST   /api/data?negocio=X       # Crear dato(s)
+PUT    /api/data/<id>?negocio=X  # Actualizar dato
+DELETE /api/data/<id>?negocio=X  # Eliminar dato
 ```
 
-**Cómo usar:**
-1. Selecciona tu sistema
-2. Pega el JSON en el área de texto
-3. Click en "CARGAR"
-4. ✅ Todos los registros se insertarán automáticamente
-
----
-
-## 📝 Ejemplos de Sistemas
-
-### **Ejemplo 1: Sistema TIENDA**
-
-**Campos:**
-- Producto (texto)
-- Precio (número, 2 decimales)
-- Cantidad (número, enteros)
-- Total (calculado: precio × cantidad)
-
-**JSON de prueba:**
-```json
-[
-  {"producto": "Laptop", "precio": "1500.00", "cantidad": 2},
-  {"producto": "Mouse", "precio": "25.50", "cantidad": 5},
-  {"producto": "Teclado", "precio": "75.00", "cantidad": 3}
-]
+### **Utilidades**
+```http
+GET /api/health  # Verificar servidor
+GET /api/stats   # Estadísticas de la BD
 ```
 
 ---
 
-### **Ejemplo 2: Sistema PERSONAS**
+## 📊 Ejemplo de Uso de la API
 
-**Campos:**
-- Nombre (texto)
-- Fecha Nacimiento (fecha)
-- Edad (edad automática desde `fecha_nacimiento`)
+### **Crear un esquema:**
+```bash
+curl -X POST http://localhost:5000/api/schemas \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "PERSONAS",
+    "config": {"idAutomatico": true},
+    "campos": [
+      {"key": "id", "label": "ID", "type": "number"},
+      {"key": "nombre", "label": "Nombre", "type": "text"},
+      {"key": "fecha_nacimiento", "label": "Fecha Nacimiento", "type": "date"},
+      {"key": "edad", "label": "Edad", "type": "age", "sourceField": "fecha_nacimiento"}
+    ]
+  }'
+```
 
-**JSON de prueba:**
-```json
-[
-  {"nombre": "Ana López", "fecha_nacimiento": "2000-03-15"},
-  {"nombre": "Pedro Ruiz", "fecha_nacimiento": "1985-08-22"},
-  {"nombre": "Sofía García", "fecha_nacimiento": "1992-11-30"}
-]
+### **Insertar datos:**
+```bash
+curl -X POST "http://localhost:5000/api/data?negocio=PERSONAS" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {"nombre": "Ana", "fecha_nacimiento": "2000-03-15"},
+    {"nombre": "Luis", "fecha_nacimiento": "1985-08-22"}
+  ]'
+```
+
+### **Obtener datos:**
+```bash
+curl http://localhost:5000/api/data?negocio=PERSONAS
 ```
 
 ---
 
-### **Ejemplo 3: Sistema LICENCIAS**
+## 🗄️ Base de Datos SQLite3
 
-**Campos:**
-- Conductor (texto)
-- Fecha Vencimiento (fecha)
-- Estado (license_status desde `fecha_vencimiento`)
+### **Ubicación:**
+```
+backend/plataforma_negocio.db
+```
 
-**JSON de prueba:**
-```json
-[
-  {"conductor": "Luis Martínez", "fecha_vencimiento": "2027-06-15"},
-  {"conductor": "Carmen Díaz", "fecha_vencimiento": "2024-01-01"},
-  {"conductor": "Roberto Sánchez", "fecha_vencimiento": "2026-09-30"}
-]
+### **Tablas:**
+
+**`esquemas`**
+```sql
+id INTEGER PRIMARY KEY
+nombre TEXT UNIQUE
+config TEXT (JSON)
+campos TEXT (JSON)
+created_at TIMESTAMP
+updated_at TIMESTAMP
+```
+
+**`datos`**
+```sql
+id INTEGER PRIMARY KEY
+negocio TEXT
+record_id INTEGER
+contenido TEXT (JSON)
+created_at TIMESTAMP
+updated_at TIMESTAMP
+UNIQUE(negocio, record_id)
+```
+
+### **Consultar la base de datos:**
+
+```bash
+# Abrir SQLite3
+cd backend
+sqlite3 plataforma_negocio.db
+
+# Ver tablas
+.tables
+
+# Ver esquemas
+SELECT * FROM esquemas;
+
+# Ver datos de un negocio
+SELECT * FROM datos WHERE negocio = 'PERSONAS';
+
+# Salir
+.quit
 ```
 
 ---
 
 ## 🐛 Solución de Problemas
 
-### **❌ Error: "Faltan campos"**
-**Causa:** El JSON no incluye todos los campos requeridos  
-**Solución:** Verifica que el JSON tenga todos los campos (excepto ID y campos calculados)
-
-### **❌ Los datos no se guardan**
-**Causa:** El navegador tiene bloqueado localStorage  
-**Solución:** Abre en modo normal (no incógnito) y permite almacenamiento local
-
-### **❌ El ID cambia al editar**
-**Causa:** Versión anterior del código  
-**Solución:** Usa la versión corregida de `app.js`
-
-### **❌ La edad no se calcula**
-**Causa:** El campo `sourceField` no coincide con el nombre del campo  
-**Solución:** Si tu campo se llama "Fecha Nacimiento", el `sourceField` debe ser `fecha_nacimiento` (todo minúsculas, con guion bajo)
-
----
-
-## 🔑 Nombres de Campos (Keys)
-
-Los nombres de campos se convierten automáticamente a formato `snake_case`:
-
-| Nombre ingresado | Key generada |
-|------------------|--------------|
-| Fecha Nacimiento | fecha_nacimiento |
-| Precio Unitario | precio_unitario |
-| DNI | dni |
-| Número Licencia | numero_licencia |
-
-**Importante:** Al configurar campos calculados, usa siempre el **key** generado, no el nombre visual.
-
----
-
-## 💾 Backup de Datos
-
-### **Exportar datos:**
-1. Copia el contenido del visor JSON inferior
-2. Guarda en un archivo `.json`
-
-### **Importar datos:**
-1. Abre el archivo JSON
-2. Copia el contenido
-3. Pégalo en el módulo de carga
-4. Click en "CARGAR"
-
----
-
-## 📱 Compatibilidad
-
-- ✅ Chrome/Edge (recomendado)
-- ✅ Firefox
-- ✅ Safari
-- ✅ Opera
-- ✅ Navegadores móviles
-
----
-
-## ⚠️ Limitaciones
-
-- Los datos se guardan en el navegador (no en servidor)
-- No usar en modo incógnito (se borran los datos al cerrar)
-- Máximo ~5MB de datos por dominio
-- Si borras el cache del navegador, pierdes los datos
-
----
-
-## 🎨 Personalización
-
-### **Cambiar colores:**
-Edita `styles.css` y modifica estas variables:
-
-```css
-color: #00ff00;  /* Color verde principal */
-background: #1a1a1a;  /* Fondo oscuro */
-border-color: #333;  /* Bordes */
+### **❌ Error: "Connection refused" o "Failed to fetch"**
+**Causa:** El servidor Flask no está corriendo  
+**Solución:**
+```bash
+cd backend
+python app.py
 ```
 
-### **Cambiar fuente:**
-```css
-font-family: 'Consolas', monospace;
+### **❌ Error: "ModuleNotFoundError: No module named 'flask'"**
+**Causa:** Flask no está instalado  
+**Solución:**
+```bash
+pip install Flask Flask-CORS
+```
+
+### **❌ Error: "CORS policy blocked"**
+**Causa:** El frontend no está en el mismo dominio  
+**Solución:** Ya está configurado Flask-CORS, pero asegúrate de que el backend esté en `localhost:5000`
+
+### **❌ Los datos no aparecen**
+**Verificar:**
+1. El servidor backend está corriendo
+2. La consola del navegador no muestra errores (F12)
+3. La URL de la API en `app.js` es correcta (`http://localhost:5000/api`)
+
+---
+
+## 💾 Backup y Restauración
+
+### **Hacer backup:**
+```bash
+# Copiar el archivo de base de datos
+cp backend/plataforma_negocio.db backend/plataforma_negocio_backup.db
+
+# O exportar a SQL
+sqlite3 backend/plataforma_negocio.db .dump > backup.sql
+```
+
+### **Restaurar backup:**
+```bash
+# Desde archivo .db
+cp backend/plataforma_negocio_backup.db backend/plataforma_negocio.db
+
+# Desde SQL
+sqlite3 backend/plataforma_negocio.db < backup.sql
 ```
 
 ---
 
-## 📞 Soporte
+## 🚀 Despliegue en Producción
 
-Si encuentras errores:
-1. Abre la consola del navegador (F12)
-2. Ve a la pestaña "Consola"
-3. Copia el mensaje de error
-4. Busca ayuda con ese mensaje
+### **Backend (Flask):**
+```bash
+# Instalar gunicorn
+pip install gunicorn
+
+# Iniciar servidor de producción
+cd backend
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```
+
+### **Frontend:**
+Simplemente sube los archivos de `frontend/` a cualquier hosting estático:
+- Netlify
+- Vercel
+- GitHub Pages
+- AWS S3
+
+**Importante:** Actualiza la URL de la API en `app.js`:
+```javascript
+const API_URL = 'https://tu-servidor.com/api';  // En producción
+```
+
+---
+
+## 📈 Mejoras Futuras
+
+- [ ] Autenticación de usuarios
+- [ ] Exportar a Excel/PDF
+- [ ] Filtros avanzados
+- [ ] Gráficos estadísticos
+- [ ] Historial de cambios
+- [ ] Permisos por rol
+
+---
+
+## 📞 Soporte Técnico
+
+### **Ver logs del servidor:**
+```bash
+# El servidor muestra logs en tiempo real en la terminal
+# Los errores aparecen con traceback completo
+```
+
+### **Ver estadísticas:**
+```bash
+curl http://localhost:5000/api/stats
+```
 
 ---
 
@@ -257,15 +343,6 @@ Uso libre para proyectos personales y comerciales.
 
 ---
 
-## 🚀 Próximas Mejoras
-
-- [ ] Exportar a Excel
-- [ ] Exportar a PDF
-- [ ] Filtros y búsqueda
-- [ ] Ordenamiento de columnas
-- [ ] Gráficos estadísticos
-
----
-
-**Versión:** 2.0  
-**Última actualización:** Febrero 2026
+**Versión:** 2.0 (SQLite3 Edition)  
+**Última actualización:** Febrero 2026  
+**Stack:** Python + Flask + SQLite3 + Vanilla JavaScript
