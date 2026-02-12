@@ -76,15 +76,13 @@ window.fb = {
   getData, createRecord, updateRecord, deleteRecord
 };
 
-// CORRECCIÓN: Usar el ID correcto y manejar la clase 'hidden'
 window.toggleCreator = function() {
-  const creator = document.getElementById('creatorSection'); // Corrección: ID creatorSection
+  // CORRECCIÓN: Usar getElementById en lugar de querySelector
+  const creator = document.getElementById('creatorSection'); 
   const btn = document.getElementById('btnCreatorText');
-  
-  // Verificación de seguridad
-  if (!creator || !btn) return;
 
-  // Lógica usando la clase 'hidden' definida en tu CSS
+  if (!creator || !btn) return; // Evita el error si no existen
+
   if (creator.classList.contains('hidden')) {
     creator.classList.remove('hidden');
     btn.textContent = 'OCULTAR CREADOR';
@@ -92,4 +90,77 @@ window.toggleCreator = function() {
     creator.classList.add('hidden');
     btn.textContent = 'CREAR NUEVO NEGOCIO';
   }
+};
+
+// ==========================================
+// LÓGICA DE INTERFAZ (UI) FALTANTE
+// ==========================================
+
+let camposTemporales = []; // Almacena los campos antes de guardar
+
+// 1. Función para mostrar/ocultar opciones según el tipo
+window.updateCampoConfig = function() {
+    // Por ahora simplificado, puedes expandirlo luego
+    console.log("Tipo de campo cambiado");
+};
+
+// 2. Función para AÑADIR CAMPO a la lista temporal
+window.agregarCampo = function() {
+    const label = document.getElementById('campoLabel').value;
+    const type = document.getElementById('campoTipo').value;
+    
+    if (!label) {
+        alert("Escribe un nombre para el campo");
+        return;
+    }
+
+    // Agregar al array
+    camposTemporales.push({ key: label.toLowerCase().replace(/ /g, '_'), label, type });
+
+    // Renderizar vista previa
+    const preview = document.getElementById('camposPreview');
+    const tag = document.createElement('div');
+    tag.className = 'campo-tag';
+    tag.innerHTML = `<span>${label} (${type})</span> <span class="campo-tag-delete" onclick="eliminarCampoTemp('${label}')">✖</span>`;
+    preview.appendChild(tag);
+
+    // Limpiar input
+    document.getElementById('campoLabel').value = '';
+};
+
+// 3. Función para GUARDAR EL SISTEMA en Firebase
+window.guardarSistema = async function() {
+    const nombre = document.getElementById('nuevoNombre').value;
+    
+    if (!nombre || camposTemporales.length === 0) {
+        alert("Ingresa un nombre y al menos un campo");
+        return;
+    }
+
+    try {
+        document.getElementById('loading').style.display = 'block';
+        
+        // Usamos la función createSchema que ya tienes definida arriba
+        await window.fb.createSchema({
+            nombre: nombre,
+            campos: camposTemporales,
+            config: { idAutomatico: document.getElementById('idAutomatico').checked }
+        });
+
+        alert("¡Negocio creado exitosamente!");
+        location.reload(); // Recargar para ver los cambios
+    } catch (error) {
+        console.error(error);
+        alert("Error al guardar: " + error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+};
+
+// 4. Función auxiliar para eliminar campos de la vista previa
+window.eliminarCampoTemp = function(label) {
+    camposTemporales = camposTemporales.filter(c => c.label !== label);
+    // Re-renderizar es más complejo, por ahora pedimos recargar si se equivocan
+    // O puedes implementar una lógica de re-renderizado simple aquí.
+    alert("Campo eliminado de la memoria (la vista previa no se actualizará visualmente hasta que limpies, pero no se guardará).");
 };
