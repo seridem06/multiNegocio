@@ -76,24 +76,20 @@ window.fb = {
   getData, createRecord, updateRecord, deleteRecord
 };
 
-// CORRECCIÓN PARA EL BOTÓN DE CREAR NEGOCIO
+// CORRECCIÓN: Usar el ID correcto y manejar la clase 'hidden'
 window.toggleCreator = function() {
-  // 1. Usamos el ID correcto que está en tu HTML
-  const creator = document.getElementById('creatorSection');
+  const creator = document.getElementById('creatorSection'); // Corrección: ID creatorSection
   const btn = document.getElementById('btnCreatorText');
-
-  // 2. Verificamos si existe para evitar errores
-  if (!creator || !btn) {
-    console.error("Error: No se encontró la sección 'creatorSection' o el botón");
-    return;
-  }
   
-  // 3. Usamos classList en lugar de style.display para ser compatible con tu CSS
+  // Verificación de seguridad
+  if (!creator || !btn) return;
+
+  // Lógica usando la clase 'hidden' definida en tu CSS
   if (creator.classList.contains('hidden')) {
-    creator.classList.remove('hidden'); // Mostrar
+    creator.classList.remove('hidden');
     btn.textContent = 'OCULTAR CREADOR';
   } else {
-    creator.classList.add('hidden'); // Ocultar
+    creator.classList.add('hidden');
     btn.textContent = 'CREAR NUEVO NEGOCIO';
   }
 };
