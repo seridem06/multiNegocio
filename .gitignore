@@ -1,0 +1,9 @@
+# Firebase - credenciales reales
+frontend/firebase-config.js
+
+# Base de datos local
+*.db
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
