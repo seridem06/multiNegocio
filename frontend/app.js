@@ -76,20 +76,24 @@ window.fb = {
   getData, createRecord, updateRecord, deleteRecord
 };
 
-// Funciones globales para el HTML
+// CORRECCIÓN PARA EL BOTÓN DE CREAR NEGOCIO
 window.toggleCreator = function() {
-  const creator = document.querySelector('.creator-container');
+  // 1. Usamos el ID correcto que está en tu HTML
+  const creator = document.getElementById('creatorSection');
   const btn = document.getElementById('btnCreatorText');
-  if (creator.style.display === 'none' || !creator.style.display) {
-    creator.style.display = 'block';
+
+  // 2. Verificamos si existe para evitar errores
+  if (!creator || !btn) {
+    console.error("Error: No se encontró la sección 'creatorSection' o el botón");
+    return;
+  }
+  
+  // 3. Usamos classList en lugar de style.display para ser compatible con tu CSS
+  if (creator.classList.contains('hidden')) {
+    creator.classList.remove('hidden'); // Mostrar
     btn.textContent = 'OCULTAR CREADOR';
   } else {
-    creator.style.display = 'none';
+    creator.classList.add('hidden'); // Ocultar
     btn.textContent = 'CREAR NUEVO NEGOCIO';
   }
-};
-
-window.cargarDesdeJson = function() {
-  // Implementa esta función según tu lógica
-  alert('Función cargarDesdeJson por implementar');
 };
