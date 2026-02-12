@@ -7,6 +7,31 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+<!-- ── PANTALLA DE LOGIN ─────────────────────────────── -->
+<div id="login-screen"
+     style="display:flex;flex-direction:column;align-items:center;
+            justify-content:center;min-height:100vh;gap:12px;">
+  <h2>multiNegocio</h2>
+  <input id="email"    type="email"    placeholder="Email" />
+  <input id="password" type="password" placeholder="Contraseña" />
+  <button onclick="
+    fb.login(
+      document.getElementById('email').value,
+      document.getElementById('password').value
+    ).catch(e => alert('Error: ' + e.message))
+  ">Iniciar sesión</button>
+  <button onclick="
+    fb.register(
+      document.getElementById('email').value,
+      document.getElementById('password').value
+    ).catch(e => alert('Error: ' + e.message))
+  ">Registrarse</button>
+</div>
+
+<!-- ── APP PRINCIPAL (oculta hasta que el usuario se loguee) ── -->
+<div id="app" style="display:none;">
+
     <div class="container">
         <!-- HEADER -->
         <div class="header">
@@ -14,9 +39,12 @@
                 <span class="header-icon"></span>
                 PLATAFORMA_MULTI_NEGOCIO
             </h1>
-            <button class="btn btn-dark" onclick="toggleCreator()">
-                <span id="btnCreatorText">CREAR NUEVO NEGOCIO</span>
-            </button>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-dark" onclick="toggleCreator()">
+                    <span id="btnCreatorText">CREAR NUEVO NEGOCIO</span>
+                </button>
+                <button class="btn" onclick="fb.logout()">CERRAR SESIÓN</button>
+            </div>
         </div>
 
         <!-- CREADOR DE SISTEMAS -->
@@ -144,6 +172,8 @@
     <div id="alert" class="alert"></div>
     <div id="loading" class="loading">⏳ PROCESANDO...</div>
 
-    <script src="app.js"></script>
+</div><!-- fin #app -->
+
+<script type="module" src="app.js"></script>
 </body>
 </html>
